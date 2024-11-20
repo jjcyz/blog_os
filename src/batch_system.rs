@@ -3,6 +3,7 @@ use spin::Mutex;
 use crate::task::{Task, ResourceRequirements};
 use crate::resource_manager::ResourceManager;
 use crate::scheduler::Scheduler;
+use crate::println;
 
 pub struct BatchSystem {
     scheduler: Mutex<Scheduler>,

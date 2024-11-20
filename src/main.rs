@@ -1,119 +1,60 @@
 #![no_std]
 #![no_main]
-#![feature(abi_x86_interrupt)]
 #![feature(alloc_error_handler)]
-
-#[macro_use]
-mod vga_buffer;
-mod interrupts;
-mod batch_system;
-mod scheduler;
-mod task;
-mod resource_manager;
-mod executor;
 
 extern crate alloc;
 
-use core::alloc::{GlobalAlloc, Layout};
-use core::ptr::null_mut;
 use core::panic::PanicInfo;
-use bootloader::BootInfo;
-use crate::batch_system::BatchSystem;
-use crate::task::{Task, ResourceRequirements};
-
-pub struct Locked<A> {
-    inner: spin::Mutex<A>,
-}
-
-impl<A> Locked<A> {
-    pub const fn new(inner: A) -> Self {
-        Locked {
-            inner: spin::Mutex::new(inner),
-        }
-    }
-
-    pub fn lock(&self) -> spin::MutexGuard<A> {
-        self.inner.lock()
-    }
-}
-
-pub struct HeapAllocator {
-    heap_start: usize,
-    heap_end: usize,
-}
-
-impl HeapAllocator {
-    pub const fn new() -> Self {
-        HeapAllocator {
-            heap_start: 0,
-            heap_end: 0,
-        }
-    }
-
-    pub fn init(&mut self, heap_start: usize, heap_size: usize) {
-        self.heap_start = heap_start;
-        self.heap_end = heap_start + heap_size;
-    }
-}
-
-fn align_up(addr: usize, align: usize) -> usize {
-    let remainder = addr % align;
-    if remainder == 0 {
-        addr
-    } else {
-        addr - remainder + align
-    }
-}
-
-unsafe impl GlobalAlloc for Locked<HeapAllocator> {
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let mut allocator = self.lock();
-
-        let alloc_start = align_up(allocator.heap_start, layout.align());
-        let alloc_end = match alloc_start.checked_add(layout.size()) {
-            Some(end) => end,
-            None => return null_mut(),
-        };
-
-        if alloc_end <= allocator.heap_end {
-            allocator.heap_start = alloc_end;
-            alloc_start as *mut u8
-        } else {
-            null_mut()
-        }
-    }
-
-    unsafe fn dealloc(&self, _ptr: *mut u8, _layout: Layout) {
-        // This is a simple bump allocator, deallocation is not implemented
-    }
-}
-
-#[global_allocator]
-static ALLOCATOR: Locked<HeapAllocator> = Locked::new(HeapAllocator::new());
-
-#[alloc_error_handler]
-fn alloc_error_handler(layout: Layout) -> ! {
-    panic!("allocation error: {:?}", layout)
-}
+use blog_os::{println, HEAP_START, HEAP_SIZE};
+use blog_os::batch_system::BatchSystem;
+use blog_os::task::{Task, ResourceRequirements};
+use blog_os::ALLOCATOR;
+use riscv::register::{mhartid, marchid, mimpid, mvendorid};
 
 #[no_mangle]
-pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
-    // Initialize heap
-    let heap_start = 0x_4444_4444_0000;
-    let heap_size = 100 * 1024; // 100 KiB
-    unsafe {
-        ALLOCATOR.lock().init(heap_start, heap_size);
-    }
+pub extern "C" fn kernel_main() -> ! {
+    // Initialize early console
+    blog_os::uart::init();
 
-    // Initialize interrupts
-    interrupts::init_idt();
+    // Print boot banner
+    println!("\n==========================================");
+    println!("RISC-V Kernel Booting on Hart {}", mhartid::read());
+    println!("==========================================\n");
 
+    // Print hardware info
+    println!("Hardware Information:");
+    println!("  Vendor ID: {:?}", mvendorid::read());
+    println!("  Architecture ID: {:?}", marchid::read());
+    println!("  Implementation ID: {:?}", mimpid::read());
+    println!("");
+
+    // Initialize core subsystems
+    println!("Initializing Core Subsystems:");
+
+    println!("→ Initializing interrupt handling...");
+    blog_os::interrupts::init();
+    println!("  [OK] Interrupts initialized");
+
+    println!("→ Initializing memory management...");
+    blog_os::memory::init();
+    println!("  [OK] Memory management initialized");
+
+    println!("→ Initializing heap allocator...");
+    ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+
+    println!("  [OK] Heap initialized at 0x{:x} with size {}KB", HEAP_START, HEAP_SIZE / 1024);
+    println!("");
+
+    // Initialize batch system
+    println!("Initializing Batch System:");
     let batch_system = BatchSystem::new(ResourceRequirements {
         cpu: 4,
         memory: 1024,
     });
+    println!("  [OK] Batch system initialized with 4 CPUs and 1024KB memory\n");
 
     // Create test tasks
+    println!("Creating Test Tasks:");
     let task1 = Task {
         executable: alloc::string::String::from("task1"),
         arguments: alloc::vec![alloc::string::String::from("arg1")],
@@ -123,6 +64,7 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
             memory: 256,
         },
     };
+    println!("  [+] Created Task 1 (Priority: 1, Memory: 256KB)");
 
     let task2 = Task {
         executable: alloc::string::String::from("task2"),
@@ -133,23 +75,40 @@ pub extern "C" fn _start(boot_info: &'static BootInfo) -> ! {
             memory: 512,
         },
     };
+    println!("  [+] Created Task 2 (Priority: 2, Memory: 512KB)\n");
 
-    println!("Batch System Initialized");
-    println!("Submitting tasks...");
-
+    // Submit and run tasks
+    println!("Submitting tasks to batch system...");
     batch_system.submit_task(task1);
     batch_system.submit_task(task2);
+    println!("  [OK] Tasks submitted successfully\n");
 
-    println!("Running batch system...");
+    println!("Starting batch system execution...");
     batch_system.run();
+    println!("  [OK] All tasks completed successfully\n");
 
-    println!("All tasks completed");
+    // Enter main loop
+    println!("Kernel initialization complete!");
+    println!("Entering main loop...\n");
 
-    loop {}
+    loop {
+        unsafe {
+            // Wait for interrupts, then handle them
+            riscv::asm::wfi();
+        }
+    }
 }
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
-    println!("{}", info);
-    loop {}
+    println!("\n!!! KERNEL PANIC !!!");
+    println!("Error: {}\n", info);
+    println!("System halted.");
+
+    loop {
+        unsafe {
+            // Wait for debugger or reset
+            riscv::asm::wfi();
+        }
+    }
 }
