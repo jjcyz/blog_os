@@ -5,3 +5,4 @@ Cargo.lock
 .idea/
 *.swp
 *.swo
+qemu.log
