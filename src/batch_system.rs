@@ -14,7 +14,7 @@ impl BatchSystem {
     pub fn new(total_resources: ResourceRequirements) -> Self {
         let resource_manager = Arc::new(Mutex::new(ResourceManager::new(total_resources.clone())));
         BatchSystem {
-            scheduler: Mutex::new(Scheduler::new(total_resources, Arc::clone(&resource_manager))),
+            scheduler: Mutex::new(Scheduler::new(total_resources)),
             resource_manager,
         }
     }

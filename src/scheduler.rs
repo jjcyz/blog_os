@@ -1,21 +1,16 @@
 use alloc::collections::VecDeque;
-use alloc::sync::Arc;
-use spin::Mutex;
 use crate::task::{Task, ResourceRequirements};
-use crate::resource_manager::ResourceManager;
 
 pub struct Scheduler {
     pub task_queue: VecDeque<Task>,
     available_resources: ResourceRequirements,
-    resource_manager: Arc<Mutex<ResourceManager>>,
 }
 
 impl Scheduler {
-    pub fn new(available_resources: ResourceRequirements, resource_manager: Arc<Mutex<ResourceManager>>) -> Self {
+    pub fn new(available_resources: ResourceRequirements) -> Self {
         Scheduler {
             task_queue: VecDeque::new(),
             available_resources,
-            resource_manager,
         }
     }
 

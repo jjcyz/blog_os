@@ -1,6 +1,9 @@
 #![no_std]
 #![no_main]
 #![feature(alloc_error_handler)]
+#![feature(custom_test_frameworks)]
+#![test_runner(crate::test_runner)]
+#![reexport_test_harness_main = "test_main"]
 
 extern crate alloc;
 
@@ -111,4 +114,12 @@ fn panic(info: &PanicInfo) -> ! {
             riscv::asm::wfi();
         }
     }
+}
+
+pub fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests", tests.len());
+    for test in tests {
+        test();
+    }
+    println!("All tests passed!");
 }

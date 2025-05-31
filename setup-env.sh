@@ -8,7 +8,7 @@ if [[ ":$PATH:" != *":$RISCV_PATH:"* ]]; then
     export PATH="$RISCV_PATH:$PATH"
 fi
 
-# Now try to run the debugger
+# Run the debugger, else install and run
 if command -v riscv64-unknown-elf-gdb >/dev/null 2>&1; then
     echo "RISC-V GDB found at: $(which riscv64-unknown-elf-gdb)"
 else
