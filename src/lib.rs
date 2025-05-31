@@ -2,7 +2,6 @@
 #![cfg_attr(test, no_main)]
 #![feature(custom_test_frameworks)]
 #![feature(alloc_error_handler)]
-#![feature(naked_functions)]
 #![test_runner(crate::test_runner)]
 #![reexport_test_harness_main = "test_main"]
 
@@ -117,4 +116,12 @@ pub const HEAP_SIZE: usize = 100 * 1024; // 100 KiB
 /// Initialize the heap allocator
 pub unsafe fn init_heap() {
     ALLOCATOR.lock().init(HEAP_START, HEAP_SIZE);
+}
+
+pub fn test_runner(tests: &[&dyn Fn()]) {
+    println!("Running {} tests", tests.len());
+    for test in tests {
+        test();
+    }
+    println!("All tests passed!");
 }
