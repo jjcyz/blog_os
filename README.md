@@ -59,30 +59,19 @@ Before running this project, you need to install:
 ## Project Structure
 
 - `src/` - Source code directory
-  - `main.rs` - Entry point of the OS
-  - `lib.rs` - Core library code
+  - `batch_system.rs` - Batch processing system
   - `interrupts.rs` - Interrupt handling
+  - `lib.rs` - Core library code
+  - `main.rs` - Entry point of the OS
   - `memory.rs` - Memory management
-  - `uart.rs` - UART communication
-  - `vga_buffer.rs` - VGA output handling
   - `scheduler.rs` - Task scheduling
   - `task.rs` - Task management
-  - `batch_system.rs` - Batch processing system
+  - `uart.rs` - UART communication
+
 
 ## Current Features
 
 - Basic interrupt handling
 - UART communication
-- VGA text output
 - Memory management
 - Task scheduling framework
-
-## Next Steps
-
-1. Implement batch system for running programs
-2. Add time-sharing multitasking
-3. Implement address spaces
-4. Add process management
-5. Implement file system
-6. Add interprocess communication
-7. Implement concurrency features
