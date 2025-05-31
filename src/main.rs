@@ -10,7 +10,7 @@ extern crate alloc;
 use core::panic::PanicInfo;
 use blog_os::{println, HEAP_START, HEAP_SIZE};
 use blog_os::batch_system::BatchSystem;
-use blog_os::task::{Task, ResourceRequirements};
+use blog_os::task::{Task, ResourceRequirements, TaskStatus};
 use blog_os::ALLOCATOR;
 use riscv::register::{mhartid, marchid, mimpid, mvendorid};
 
@@ -18,6 +18,7 @@ use riscv::register::{mhartid, marchid, mimpid, mvendorid};
 pub extern "C" fn kernel_main() -> ! {
     // Initialize early console
     blog_os::uart::init();
+    println!("DEBUG: UART initialized");
 
     // Print boot banner
     println!("\n==========================================");
@@ -66,6 +67,7 @@ pub extern "C" fn kernel_main() -> ! {
             cpu: 1,
             memory: 256,
         },
+        status: TaskStatus::Queued,
     };
     println!("  [+] Created Task 1 (Priority: 1, Memory: 256KB)");
 
@@ -77,13 +79,40 @@ pub extern "C" fn kernel_main() -> ! {
             cpu: 1,
             memory: 512,
         },
+        status: TaskStatus::Queued,
     };
-    println!("  [+] Created Task 2 (Priority: 2, Memory: 512KB)\n");
+    println!("  [+] Created Task 2 (Priority: 2, Memory: 512KB)");
+
+    let task3 = Task {
+        executable: alloc::string::String::from("task3"),
+        arguments: alloc::vec![alloc::string::String::from("arg3")],
+        priority: 3,
+        resource_requirements: ResourceRequirements {
+            cpu: 2,
+            memory: 384,
+        },
+        status: TaskStatus::Queued,
+    };
+    println!("  [+] Created Task 3 (Priority: 3, Memory: 384KB)");
+
+    let task4 = Task {
+        executable: alloc::string::String::from("task4"),
+        arguments: alloc::vec![alloc::string::String::from("arg4")],
+        priority: 4,
+        resource_requirements: ResourceRequirements {
+            cpu: 1,
+            memory: 128,
+        },
+        status: TaskStatus::Queued,
+    };
+    println!("  [+] Created Task 4 (Priority: 4, Memory: 128KB)\n");
 
     // Submit and run tasks
     println!("Submitting tasks to batch system...");
     batch_system.submit_task(task1);
     batch_system.submit_task(task2);
+    batch_system.submit_task(task3);
+    batch_system.submit_task(task4);
     println!("  [OK] Tasks submitted successfully\n");
 
     println!("Starting batch system execution...");

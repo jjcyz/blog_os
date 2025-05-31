@@ -71,7 +71,7 @@ Before running this project, you need to install:
 
 ## Current Features
 
-- Basic interrupt handling
-- UART communication
-- Memory management
-- Task scheduling framework
+- 1 CPU core (HART)
+- UART console for output
+- Memory regions configured
+  - Domain0 Region00-07 for read, write, execute

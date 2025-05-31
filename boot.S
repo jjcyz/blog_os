@@ -30,6 +30,6 @@ clear_bss_done:
 .align 12
 .global _stack_start
 _stack_start:
-    .zero 4096 * 4  # 16KB stack
+    .zero 4096 * 16  # 64KB stack
 .global _stack_end
 _stack_end:

@@ -2,6 +2,7 @@ use core::fmt;
 use lazy_static::lazy_static;
 use spin::Mutex;
 use core::ptr::{read_volatile, write_volatile};
+use crate::println;
 
 // QEMU virt machine UART address
 const UART0: u64 = 0x1000_0000;
@@ -40,25 +41,32 @@ impl Uart {
         unsafe {
             // Disable all interrupts
             self.write_reg(1, 0x00);
+            println!("UART: Disabled interrupts");
 
             // Enable DLAB (set baud rate divisor)
             self.write_reg(3, 0x80);
+            println!("UART: Enabled DLAB");
 
             // Set divisor to 1 (115200 baud)
             self.write_reg(0, 0x01);
             self.write_reg(1, 0x00);
+            println!("UART: Set baud rate");
 
             // 8 bits, no parity, one stop bit
             self.write_reg(3, 0x03);
+            println!("UART: Set line control");
 
             // Enable FIFO, clear them, with 14-byte threshold
             self.write_reg(2, 0xC7);
+            println!("UART: Enabled FIFO");
 
             // Mark data terminal ready, signal request to send
             self.write_reg(4, 0x0B);
+            println!("UART: Set modem control");
 
             // Enable received data available interrupt
             self.write_reg(1, 0x01);
+            println!("UART: Enabled receive interrupt");
         }
     }
 
